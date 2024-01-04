@@ -1,6 +1,6 @@
 from stemxtract.app import StemXtract
 from stemxtract.http import AUTH_COOKIE_HEADER
-from stemxtract.state.base import TaskID
+from stemxtract.task.base import TaskID
 
 import dataclasses
 

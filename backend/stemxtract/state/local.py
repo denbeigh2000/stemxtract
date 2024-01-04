@@ -1,6 +1,9 @@
 from stemxtract.state.base import (
+    AuthToken,
     State,
     StateManager,
+)
+from stemxtract.task.base import (
     TaskID,
     TaskParams,
     TaskState,
@@ -8,12 +11,10 @@ from stemxtract.state.base import (
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional
-import asyncio
-import dataclasses
+from typing import Dict, Generator, Optional, Tuple
 import sys
 
-from zipstream import AioZipStream
+from zipstream import AioZipStream  # type: ignore
 
 _ID_LENGTH = 12
 
@@ -21,34 +22,47 @@ _ID_LENGTH = 12
 @dataclass
 class ZipfileEntry:
     path: Path
-    name: str
+
+    def __iter__(self) -> Generator[Tuple[str, str], None, None]:
+        data = {
+            "file": str(self.path.absolute()),
+            "name": self.path.name,
+        }
+
+        return (_ for _ in data.items())
 
 
 # TODO: need to repesent file on-disk instead of in-memory
 class LocalStateManager(StateManager):
     def __init__(self, data_dir: Path) -> None:
-        self._state: Dict[TaskID, State] = {}
+        self._state: Dict[Tuple[AuthToken, TaskID], State] = {}
         self._data_dir = data_dir
 
-    async def create_task(self, params: TaskParams) -> TaskID:
-        while True:
+    async def create_task(
+        self, params: TaskParams, token: AuthToken
+    ) -> TaskID:
+        new_id = TaskID.new_id()
+        key = (token, new_id)
+        while key in self._state:
             new_id = TaskID.new_id()
-            if new_id in self._state:
-                continue
+            key = (token, new_id)
 
-            new_state = State(
-                id=new_id, state=TaskState.CREATED, params=params
-            )
+        new_state = State(id=new_id, state=TaskState.CREATED, params=params)
 
-            self._state[new_id] = new_state
-            return new_id
+        self._state[key] = new_state
+        return new_id
 
-    async def get_state(self, id: TaskID) -> Optional[State]:
+    async def get_state(self, id: TaskID, token: AuthToken) -> Optional[State]:
         # TODO: This should check disk, etc
-        return self._state.get(id)
+        key = (token, id)
+        return self._state.get(key)
 
-    async def get_results(self, id: TaskID) -> Optional[asyncio.StreamReader]:
-        state = self._state.get(id)
+    async def get_results(
+        self,
+        id: TaskID,
+        token: AuthToken,
+    ) -> Optional[Generator[bytes, None, None]]:
+        state = self._state.get((token, id))
         if state is None:
             return None
 
@@ -63,14 +77,17 @@ class LocalStateManager(StateManager):
             return None
 
         zip_paths = [
-            dataclasses.asdict(ZipfileEntry(path=item, name=item.name))
+            dict(ZipfileEntry(path=item))
             for item in data_path.iterdir()
             if item.is_file()
         ]
 
         if not zip_paths:
             # TODO: Proper logging
-            print(f"WARN: No files found under ${data_path}", file=sys.stderr)
+            msg = f"WARN: Nothing under {data_path} (but directory exists)"
+            print(msg, file=sys.stderr)
             return None
 
-        return AioZipStream(zip_paths).stream()
+        # NOTE: Not 100% sure if this is accurate
+        stream: Generator[bytes, None, None] = AioZipStream(zip_paths).stream()
+        return stream

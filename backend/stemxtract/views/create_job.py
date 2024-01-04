@@ -1,8 +1,8 @@
 from stemxtract.app import StemXtract
 from stemxtract.http import AUTH_COOKIE_HEADER, create_auth_cookie
-from stemxtract.state.base import State, TaskParams, TaskState
+from stemxtract.state.base import State
+from stemxtract.task.base import TaskParams, TaskState
 
-from http.cookies import Morsel
 import dataclasses
 
 from starlette.requests import Request
