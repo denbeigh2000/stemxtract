@@ -20,7 +20,6 @@ async def create_job(request: Request) -> JSONResponse:
     params = TaskParams(**body)
     new_id = await app.manager.create_task(params)
     task = State(id=new_id, state=TaskState.CREATED, params=params)
-    print(task)
     response = JSONResponse(dataclasses.asdict(task))
     response.set_cookie(AUTH_COOKIE_HEADER, auth_token)
 

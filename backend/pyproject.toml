@@ -2,6 +2,7 @@
 name = "stemxtract"
 version = "0.0.0"
 dependencies = [
+  "aiozipstream~=0.4",
   "starlette~=0.34.0",
   "uvicorn~=0.25.0",
 ]

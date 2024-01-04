@@ -20,6 +20,4 @@ async def get_job(request: Request) -> JSONResponse:
     if not state:
         return JSONResponse(content=None, status_code=404)
 
-    print(state)
-
     return JSONResponse(content=dataclasses.asdict(state))
