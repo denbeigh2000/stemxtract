@@ -1,0 +1,7 @@
+[project]
+name = "stemxtract"
+version = "0.0.0"
+dependencies = [
+  "starlette~=0.34.0",
+  "uvicorn~=0.25.0",
+]
