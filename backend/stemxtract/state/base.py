@@ -5,10 +5,6 @@ from dataclasses import dataclass
 from typing import Generator, Optional
 
 
-class AuthToken(str):
-    pass
-
-
 @dataclass
 class State:
     id: TaskID
@@ -18,19 +14,17 @@ class State:
 
 class StateManager(metaclass=ABCMeta):
     @abstractmethod
-    async def create_task(
-        self, params: TaskParams, token: AuthToken
-    ) -> TaskID:
+    async def create_task(self, params: TaskParams, token: str) -> TaskID:
         ...
 
     @abstractmethod
-    async def get_state(self, id: TaskID, token: AuthToken) -> Optional[State]:
+    async def get_state(self, id: TaskID, token: str) -> Optional[State]:
         ...
 
     @abstractmethod
     async def get_results(
         self,
         id: TaskID,
-        token: AuthToken,
+        token: str,
     ) -> Optional[Generator[bytes, None, None]]:
         ...

@@ -33,6 +33,7 @@ def _assert_type(arg: Any, typ: Type[E]) -> E:
 class OAuthTokenURIs:
     user_auth: str
     token_request: str
+    token_refresh: str
     token_revoke: str
 
     redirect: str
@@ -190,7 +191,7 @@ class OAuthTokenManager:
 
     async def _refresh(self, user_id: str, record: TokenRecord) -> TokenRecord:
         (url, headers, body) = self._client.prepare_refresh_token_request(
-            self._uris.token_request, record.refresh_token, record.scope
+            self._uris.token_refresh, record.refresh_token, record.scope
         )
 
         data = body.encode("utf-8")

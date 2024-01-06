@@ -28,7 +28,7 @@ class DiscordUser(BaseUser):
     def __init__(self, discord_id: str):
         self.user_id = discord_id
 
-        BaseUser.__init__(self)
+        super().__init__()
 
     @property
     def display_name(self) -> str:

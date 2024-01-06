@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import cast, Optional
 
 from stemxtract.auth.oauth.state import (
     LocalOAuthStateStorage,
@@ -7,9 +7,12 @@ from stemxtract.auth.oauth.state import (
 )
 from stemxtract.auth.oauth.token import (
     AuthenticatedUser,
-    TokenRecord,
+    IdentifyFn,
+    OAuthClientDetails,
     OAuthTokenManager,
     OAuthTokenStorage,
+    OAuthTokenURIs,
+    TokenRecord,
 )
 
 from oauthlib.oauth2 import WebApplicationClient
@@ -25,6 +28,9 @@ class OAuthAuthManager:
 
     def __init__(
         self,
+        id_func: IdentifyFn,
+        client_info: OAuthClientDetails,
+        uris: OAuthTokenURIs,
         token_store: Optional[OAuthTokenStorage] = None,
         state_store: Optional[OAuthStateStorage] = None,
     ):
@@ -32,8 +38,9 @@ class OAuthAuthManager:
             state_store = LocalOAuthStateStorage()
         self._state_mgr = OAuthStateManager(state_store)
         # TODO: need to implement a real token store
-        assert token_store is not None, "TODO: token storage unimplemented"
-        self._token_mgr = OAuthTokenManager(token_store)  # type: ignore
+        self._token_mgr = OAuthTokenManager(
+            id_func, client_info, cast(OAuthTokenStorage, token_store), uris
+        )
 
     async def handle_authorise(self) -> str:
         state = await self._state_mgr.add_state()
