@@ -2,7 +2,16 @@
 name = "stemxtract"
 version = "0.0.0"
 dependencies = [
+  "aiohttp~=3.9.1",
   "aiozipstream~=0.4",
+  "oauthlib~=3.2.2",
+  "python-dateutil~=2.8.2",
   "starlette~=0.34.0",
   "uvicorn~=0.25.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "types-oauthlib",
+  "types-python-dateutil",
 ]
