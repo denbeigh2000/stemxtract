@@ -1,5 +1,6 @@
 from stemxtract.auth.oauth import OAuthAuthManager
 from stemxtract.auth.oauth.token import AuthenticatedUser, TokenRecord
+from stemxtract.views.auth import DISCORD_ID_SESSION_KEY, EXPIRY_SESSION_KEY
 from datetime import datetime, timezone
 from typing import Optional, Tuple
 
@@ -11,13 +12,10 @@ from starlette.authentication import (
 )
 from starlette.requests import HTTPConnection
 
-_DISCORD_ID_KEY = "discord_id"
-_EXPIRY_KEY = "login_expiry"
-
 
 class OAuthCredentials(AuthenticatedUser, AuthCredentials):
     def __init__(self, identity: str, token: TokenRecord) -> None:
-        AuthCredentials.__init__(self)
+        AuthCredentials.__init__(self, scopes=["authenticated"])
         AuthenticatedUser.__init__(self, identity, token)
 
     @classmethod
@@ -29,6 +27,8 @@ class OAuthCredentials(AuthenticatedUser, AuthCredentials):
 class DiscordUser(BaseUser):
     def __init__(self, discord_id: str):
         self.user_id = discord_id
+
+        BaseUser.__init__(self)
 
     @property
     def display_name(self) -> str:
@@ -54,8 +54,8 @@ class DiscordAuthBackend(AuthenticationBackend):
 
         # NOTE: We trust here that the JWT signing guarantees that this id/expiry time
         # is correct
-        discord_id: Optional[str] = conn.session.get(_DISCORD_ID_KEY)
-        expires_raw: Optional[str] = conn.session.get(_EXPIRY_KEY)
+        discord_id: Optional[str] = conn.session.get(DISCORD_ID_SESSION_KEY)
+        expires_raw: Optional[str] = conn.session.get(EXPIRY_SESSION_KEY)
         if not (discord_id and expires_raw):
             return None
 
