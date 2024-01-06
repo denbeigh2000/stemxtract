@@ -1,4 +1,5 @@
 from stemxtract.app import StemXtract
+
 from stemxtract.views.create_job import create_job
 from stemxtract.views.get_job import get_job
 
@@ -28,7 +29,6 @@ async def homepage(request: Request):
 #
 # GET /xtract/<id>/download
 # Fetch the assets of a completed fetch/extract operation
-
 
 app = StemXtract(
     debug=True,

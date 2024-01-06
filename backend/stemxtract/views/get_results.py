@@ -4,7 +4,6 @@ from stemxtract.http import AUTH_COOKIE_HEADER
 from http import HTTPStatus
 import mimetypes
 
-from zipstream import AioZipStream
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 

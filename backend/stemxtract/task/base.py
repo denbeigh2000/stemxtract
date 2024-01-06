@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-import random
-import string
+
+from stemxtract.util import random_id
 
 
 _ID_LENGTH = 12
@@ -10,11 +10,7 @@ _ID_LENGTH = 12
 class TaskID(str):
     @classmethod
     def new_id(cls) -> "TaskID":
-        return cls(
-            "".join(
-                random.choice(string.ascii_letters) for _ in range(_ID_LENGTH)
-            )
-        )
+        return cls(random_id(_ID_LENGTH, include_nums=False))
 
 
 class TaskState(IntEnum):
