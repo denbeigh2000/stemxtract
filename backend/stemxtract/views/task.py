@@ -7,14 +7,14 @@ import mimetypes
 
 from starlette.authentication import requires
 from starlette.requests import Request
-from starlette.responses import JSONResponse, StreamingResponse
+from starlette.responses import JSONResponse, Response, StreamingResponse
 
 
 class TaskView:
     def __init__(self, job_state_manager: TaskManager) -> None:
         self._state_mgr = job_state_manager
 
-    @requires("authenticated", redirect="/login")
+    @requires("authenticated")
     async def get(self, request: Request) -> JSONResponse:
         task_id = TaskID(request.path_params["id"])
         # TODO: This needs to also accept auth_header to verify ownership
@@ -24,7 +24,7 @@ class TaskView:
 
         return JSONResponse(content=dataclasses.asdict(state))
 
-    @requires("authenticated", redirect="/login")
+    @requires("authenticated")
     async def create(self, request: Request) -> JSONResponse:
         body = await request.json()
         params = TaskParams(**body)
@@ -34,10 +34,10 @@ class TaskView:
 
         return response
 
-    @requires("authenticated", redirect="/login")
-    async def download(self, request: Request) -> StreamingResponse:
+    @requires("authenticated")
+    async def download(self, request: Request) -> Response:
         task_id = request.path_params["id"]
-        result = self._state_mgr.get_results(task_id, "TODO")
+        result = await self._state_mgr.get_results(task_id, "TODO")
         if not result:
             return JSONResponse(content=None, status_code=HTTPStatus.NOT_FOUND)
 

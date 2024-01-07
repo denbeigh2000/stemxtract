@@ -1,5 +1,7 @@
 from stemxtract.auth.oauth import OAuthAuthManager
 from stemxtract.auth.oauth.token import OAuthClientDetails, OAuthTokenURIs
+from stemxtract.auth.oauth.starlette import DiscordAuthBackend
+from stemxtract.auth.oauth.discord import discord_identity
 from stemxtract.state.local import LocalStateManager
 from stemxtract.views.auth import AuthView
 from stemxtract.views.task import TaskView
@@ -7,17 +9,10 @@ from stemxtract.views.task import TaskView
 from pathlib import Path
 
 from starlette.applications import Starlette
-from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.middleware import Middleware
+from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.routing import Route
-
-
-async def TODO(request: Request):
-    raise NotImplementedError()
-
-
-async def homepage(request: Request):
-    return JSONResponse({"hello": "world"})
 
 
 # PLAN
@@ -35,10 +30,6 @@ async def homepage(request: Request):
 # Fetch the assets of a completed fetch/extract operation
 
 
-async def TODO_id_func(token: str) -> str:
-    raise NotImplementedError()
-
-
 _DISCORD_API_BASE = "https://discord.com/api/v10"
 _DISCORD_API_URIS = OAuthTokenURIs(
     user_auth=f"{_DISCORD_API_BASE}/oauth2/authorize",
@@ -52,22 +43,31 @@ _DISCORD_API_URIS = OAuthTokenURIs(
 def build_app() -> Starlette:
     client_info = OAuthClientDetails("TODO", "TODO")
     auth_mgr = OAuthAuthManager(
-        TODO_id_func,
+        discord_identity,
         client_info,
         _DISCORD_API_URIS,
     )
     auth_view = AuthView(auth_mgr)
+    auth_backend = DiscordAuthBackend(auth_mgr)
 
     state_mgr = LocalStateManager(data_dir=Path("/tmp/stemxtract"))
     task_view = TaskView(state_mgr)
     return Starlette(
         debug=True,
+        middleware=[
+            # NOTE: developement settings only!
+            Middleware(
+                SessionMiddleware,
+                secret_key="development",
+                https_only=False,
+            ),
+            Middleware(AuthenticationMiddleware, backend=auth_backend),
+        ],
         routes=[
             Route("/auth/login", auth_view.login),
             Route("/auth/redirect", auth_view.redirect),
             Route("/task", task_view.create, methods=["POST"]),
             Route("/task/{id}", task_view.get),
             Route("/task/{id}/download", task_view.download),
-            Route("/", homepage),
         ],
     )
