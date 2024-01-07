@@ -1,43 +1,46 @@
-from stemxtract.http import AUTH_COOKIE_HEADER, create_auth_cookie
-from stemxtract.state.base import State, StateManager
+from stemxtract.state.base import State, TaskManager
 from stemxtract.task.base import TaskID, TaskParams, TaskState
 
+from http import HTTPStatus
 import dataclasses
+import mimetypes
 
 from starlette.authentication import requires
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, StreamingResponse
 
 
-class JobView:
-    def __init__(self, job_state_manager: StateManager) -> None:
+class TaskView:
+    def __init__(self, job_state_manager: TaskManager) -> None:
         self._state_mgr = job_state_manager
 
     @requires("authenticated", redirect="/login")
     async def get(self, request: Request) -> JSONResponse:
         task_id = TaskID(request.path_params["id"])
-        auth_header = request.cookies.get(AUTH_COOKIE_HEADER)
-        if not auth_header:
-            return JSONResponse(content=None, status_code=403)
-
         # TODO: This needs to also accept auth_header to verify ownership
         state = await self._state_mgr.get_state(task_id, "TODO")
         if not state:
-            return JSONResponse(content=None, status_code=404)
+            return JSONResponse(content=None, status_code=HTTPStatus.NOT_FOUND)
 
         return JSONResponse(content=dataclasses.asdict(state))
 
     @requires("authenticated", redirect="/login")
     async def create(self, request: Request) -> JSONResponse:
-        auth_token = request.cookies.get(AUTH_COOKIE_HEADER)
-        if not auth_token:
-            auth_token = create_auth_cookie()
-
         body = await request.json()
         params = TaskParams(**body)
         new_id = await self._state_mgr.create_task(params, "TODO")
         task = State(id=new_id, state=TaskState.CREATED, params=params)
         response = JSONResponse(dataclasses.asdict(task))
-        response.set_cookie(AUTH_COOKIE_HEADER, auth_token)
 
         return response
+
+    @requires("authenticated", redirect="/login")
+    async def download(self, request: Request) -> StreamingResponse:
+        task_id = request.path_params["id"]
+        result = self._state_mgr.get_results(task_id, "TODO")
+        if not result:
+            return JSONResponse(content=None, status_code=HTTPStatus.NOT_FOUND)
+
+        return StreamingResponse(
+            result, media_type=mimetypes.types_map[".zip"]
+        )

@@ -12,7 +12,7 @@ class State:
     params: TaskParams
 
 
-class StateManager(metaclass=ABCMeta):
+class TaskManager(metaclass=ABCMeta):
     @abstractmethod
     async def create_task(self, params: TaskParams, token: str) -> TaskID:
         ...

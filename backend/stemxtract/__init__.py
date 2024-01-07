@@ -2,7 +2,7 @@ from stemxtract.auth.oauth import OAuthAuthManager
 from stemxtract.auth.oauth.token import OAuthClientDetails, OAuthTokenURIs
 from stemxtract.state.local import LocalStateManager
 from stemxtract.views.auth import AuthView
-from stemxtract.views.job import JobView
+from stemxtract.views.task import TaskView
 
 from pathlib import Path
 
@@ -59,18 +59,15 @@ def build_app() -> Starlette:
     auth_view = AuthView(auth_mgr)
 
     state_mgr = LocalStateManager(data_dir=Path("/tmp/stemxtract"))
-    job_view = JobView(state_mgr)
+    task_view = TaskView(state_mgr)
     return Starlette(
         debug=True,
         routes=[
             Route("/auth/login", auth_view.login),
             Route("/auth/redirect", auth_view.redirect),
-            Route("/xtract", job_view.create, methods=["POST"]),
-            Route("/xtract/{id}/state", job_view.get),
-            Route("/xtract/{id}/result", TODO),
+            Route("/task", task_view.create, methods=["POST"]),
+            Route("/task/{id}", task_view.get),
+            Route("/task/{id}/download", task_view.download),
             Route("/", homepage),
         ],
     )
-
-
-app = build_app()
