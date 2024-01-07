@@ -1,9 +1,7 @@
-from stemxtract.state.base import (
-    State,
-    TaskManager,
-)
 from stemxtract.task.base import (
+    Task,
     TaskID,
+    TaskManager,
     TaskParams,
     TaskState,
 )
@@ -32,9 +30,9 @@ class ZipfileEntry:
 
 
 # TODO: need to repesent file on-disk instead of in-memory
-class LocalStateManager(TaskManager):
+class LocalTaskManager(TaskManager):
     def __init__(self, data_dir: Path) -> None:
-        self._state: Dict[Tuple[str, TaskID], State] = {}
+        self._state: Dict[Tuple[str, TaskID], Task] = {}
         self._data_dir = data_dir
 
     async def create_task(self, params: TaskParams, token: str) -> TaskID:
@@ -44,12 +42,12 @@ class LocalStateManager(TaskManager):
             new_id = TaskID.new_id()
             key = (token, new_id)
 
-        new_state = State(id=new_id, state=TaskState.CREATED, params=params)
+        new_state = Task(id=new_id, state=TaskState.CREATED, params=params)
 
         self._state[key] = new_state
         return new_id
 
-    async def get_state(self, id: TaskID, token: str) -> Optional[State]:
+    async def get_task(self, id: TaskID, token: str) -> Optional[Task]:
         # TODO: This should check disk, etc
         key = (token, id)
         return self._state.get(key)

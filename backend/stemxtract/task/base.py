@@ -1,5 +1,7 @@
+from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, IntEnum
+from typing import Generator, Optional
 
 from stemxtract.util import random_id
 
@@ -36,3 +38,28 @@ class Model(str, Enum):
 class TaskParams:
     url: str
     model: Model = Model.HTDEMUCS
+
+
+@dataclass
+class Task:
+    id: TaskID
+    state: TaskState
+    params: TaskParams
+
+
+class TaskManager(metaclass=ABCMeta):
+    @abstractmethod
+    async def create_task(self, params: TaskParams, token: str) -> TaskID:
+        ...
+
+    @abstractmethod
+    async def get_task(self, id: TaskID, token: str) -> Optional[Task]:
+        ...
+
+    @abstractmethod
+    async def get_results(
+        self,
+        id: TaskID,
+        token: str,
+    ) -> Optional[Generator[bytes, None, None]]:
+        ...

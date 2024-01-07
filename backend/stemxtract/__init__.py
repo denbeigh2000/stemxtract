@@ -2,7 +2,8 @@ from stemxtract.auth.oauth import OAuthAuthManager
 from stemxtract.auth.oauth.token import OAuthClientDetails, OAuthTokenURIs
 from stemxtract.auth.oauth.starlette import DiscordAuthBackend
 from stemxtract.auth.oauth.discord import discord_identity
-from stemxtract.state.local import LocalStateManager
+from stemxtract.task.base import TaskManager
+from stemxtract.task.local import LocalTaskManager
 from stemxtract.views.auth import AuthView
 from stemxtract.views.task import TaskView
 
@@ -13,6 +14,7 @@ from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.routing import Route
+import click
 
 
 # PLAN
@@ -36,22 +38,20 @@ _DISCORD_API_URIS = OAuthTokenURIs(
     token_request=f"{_DISCORD_API_BASE}/oauth2/token",
     token_refresh=f"{_DISCORD_API_BASE}/oauth2/token",
     token_revoke=f"{_DISCORD_API_BASE}/oauth2/token/revoke",
+    # NOTE: Should this live in this struct? needs to be configurable
     redirect="https://example.com/TODO",
 )
 
 
-def build_app() -> Starlette:
-    client_info = OAuthClientDetails("TODO", "TODO")
-    auth_mgr = OAuthAuthManager(
-        discord_identity,
-        client_info,
-        _DISCORD_API_URIS,
-    )
+def build_app(
+    auth_mgr: OAuthAuthManager,
+    task_mgr: TaskManager,
+    client_info: OAuthClientDetails,
+) -> Starlette:
     auth_view = AuthView(auth_mgr)
     auth_backend = DiscordAuthBackend(auth_mgr)
 
-    state_mgr = LocalStateManager(data_dir=Path("/tmp/stemxtract"))
-    task_view = TaskView(state_mgr)
+    task_view = TaskView(task_mgr)
     return Starlette(
         debug=True,
         middleware=[
@@ -71,3 +71,50 @@ def build_app() -> Starlette:
             Route("/task/{id}/download", task_view.download),
         ],
     )
+
+
+def build_default_app() -> Starlette:
+    client_info = OAuthClientDetails("TODO", "TODO")
+    auth_mgr = OAuthAuthManager(
+        discord_identity,
+        client_info,
+        _DISCORD_API_URIS,
+    )
+    task_mgr = LocalTaskManager(data_dir=Path("/tmp/stemxtract"))
+
+    return build_app(auth_mgr, task_mgr, client_info)
+
+
+@click.command(name="stemxtract")
+@click.option(
+    "--oauth-client-id", required=True, envvar="STEMXTRACT_OAUTH_CLIENT_ID"
+)
+@click.option(
+    "--oauth-client-secret",
+    required=True,
+    envvar="STEMXTRACT_OAUTH_CLIENT_SECRET",
+)
+@click.option(
+    "--data-dir",
+    default="/tmp/stemxtract",
+    envvar="STEMXTRACT_DATA_DIR",
+    type=Path,
+)
+def main(
+    oauth_client_id: str, oauth_client_secret: str, data_dir: Path
+) -> None:
+    client_info = OAuthClientDetails(oauth_client_id, oauth_client_secret)
+    auth_mgr = OAuthAuthManager(
+        discord_identity, client_info, _DISCORD_API_URIS
+    )
+    task_mgr = LocalTaskManager(data_dir)
+
+    app = build_app(auth_mgr, task_mgr, client_info)
+
+    import uvicorn
+
+    uvicorn.run(app)
+
+
+if __name__ == "__main__":
+    main()

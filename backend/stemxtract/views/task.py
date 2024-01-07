@@ -1,5 +1,10 @@
-from stemxtract.state.base import State, TaskManager
-from stemxtract.task.base import TaskID, TaskParams, TaskState
+from stemxtract.task.base import (
+    Task,
+    TaskID,
+    TaskManager,
+    TaskParams,
+    TaskState,
+)
 
 from http import HTTPStatus
 import dataclasses
@@ -18,7 +23,7 @@ class TaskView:
     async def get(self, request: Request) -> JSONResponse:
         task_id = TaskID(request.path_params["id"])
         # TODO: This needs to also accept auth_header to verify ownership
-        state = await self._state_mgr.get_state(task_id, "TODO")
+        state = await self._state_mgr.get_task(task_id, "TODO")
         if not state:
             return JSONResponse(content=None, status_code=HTTPStatus.NOT_FOUND)
 
@@ -29,7 +34,7 @@ class TaskView:
         body = await request.json()
         params = TaskParams(**body)
         new_id = await self._state_mgr.create_task(params, "TODO")
-        task = State(id=new_id, state=TaskState.CREATED, params=params)
+        task = Task(id=new_id, state=TaskState.CREATED, params=params)
         response = JSONResponse(dataclasses.asdict(task))
 
         return response
